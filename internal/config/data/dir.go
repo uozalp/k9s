@@ -53,6 +53,7 @@ func (d *Dir) Load(n string, ct *api.Context) (*Config, error) {
 }
 
 func (d *Dir) genConfig(path string, ct *api.Context) (*Config, error) {
+	log.Debug().Msgf("Generated context config %q", path)
 	cfg := NewConfig(ct)
 	if err := d.Save(path, cfg); err != nil {
 		return nil, err
@@ -77,6 +78,7 @@ func (d *Dir) Save(path string, c *Config) error {
 		return err
 	}
 
+	log.Debug().Msgf("Saving context config %q", path)
 	return os.WriteFile(path, cfg, DefaultFileMod)
 }
 
