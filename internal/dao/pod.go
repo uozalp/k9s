@@ -466,7 +466,7 @@ func tailLogs(ctx context.Context, logger Logger, opts *LogOptions) LogChan {
 func readLogs(ctx context.Context, stream io.ReadCloser, out chan<- *LogItem, opts *LogOptions) streamResult {
 	defer func() {
 		if err := stream.Close(); err != nil && !errors.Is(err, io.ErrClosedPipe) {
-			slog.Error("Fail to close stream",
+			slog.Error("Failed to close stream",
 				slogs.Container, opts.Info(),
 				slogs.Error, err,
 			)

@@ -18,7 +18,7 @@ const (
 
 	// FlashInfo represents an info message.
 	FlashInfo FlashLevel = iota
-	// FlashWarn represents an warning message.
+	// FlashWarn represents a warning message.
 	FlashWarn
 	// FlashErr represents an error message.
 	FlashErr

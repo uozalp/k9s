@@ -22,7 +22,7 @@ import (
 
 const falseStr = "false"
 
-// ContainerWithMetrics represents a container and it's metrics.
+// ContainerWithMetrics represents a container and its metrics.
 type ContainerWithMetrics interface {
 	// Container returns the container
 	Container() *v1.Container
@@ -36,7 +36,7 @@ type ContainerWithMetrics interface {
 	// Age returns the pod age.
 	Age() metav1.Time
 
-	// IsInit indicates a init container.
+	// IsInit indicates an init container.
 	IsInit() bool
 }
 

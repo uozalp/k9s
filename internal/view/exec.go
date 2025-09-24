@@ -240,7 +240,7 @@ func execute(opts *shellOpts, statusChan chan<- string) error {
 func runKu(ctx context.Context, a *App, opts *shellOpts) (string, error) {
 	bin, err := exec.LookPath("kubectl")
 	if errors.Is(err, exec.ErrDot) {
-		slog.Error("Kubectl exec can not reside in current working directory", slogs.Error, err)
+		slog.Error("Kubectl exec cannot reside in current working directory", slogs.Error, err)
 		return "", err
 	}
 	if err != nil {

@@ -117,7 +117,7 @@ func (t *Table) AddBindKeysFn(f BindKeysFunc) {
 // SetEnvFn sets a function to pull viewer env vars for plugins.
 func (t *Table) SetEnvFn(f EnvFunc) { t.envFn = f }
 
-// EnvFn returns an plugin env function if available.
+// EnvFn returns a plugin env function if available.
 func (t *Table) EnvFn() EnvFunc {
 	return t.envFn
 }

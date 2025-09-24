@@ -229,7 +229,7 @@ func (x *Xray) selectedSpec() *xray.NodeSpec {
 	return &ref
 }
 
-// EnvFn returns an plugin env function if available.
+// EnvFn returns a plugin env function if available.
 func (x *Xray) EnvFn() EnvFunc {
 	return x.envFn
 }

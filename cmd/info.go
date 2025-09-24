@@ -61,7 +61,7 @@ func getScreenDumpDirForInfo() string {
 
 	f, err := os.ReadFile(config.AppConfigFile)
 	if err != nil {
-		slog.Error("Unable to reads k9s config file", slogs.Error, err)
+		slog.Error("Unable to read k9s config file", slogs.Error, err)
 		return config.AppDumpsDir
 	}
 

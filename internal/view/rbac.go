@@ -12,7 +12,7 @@ import (
 	"github.com/derailed/tcell/v2"
 )
 
-// Rbac presents an RBAC policy viewer.
+// Rbac presents a RBAC policy viewer.
 type Rbac struct {
 	ResourceViewer
 }

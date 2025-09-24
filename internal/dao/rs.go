@@ -59,7 +59,7 @@ func (*ReplicaSet) Load(f Factory, path string) (*appsv1.ReplicaSet, error) {
 func getRSRevision(rs *appsv1.ReplicaSet) (int64, error) {
 	revision := rs.Annotations["deployment.kubernetes.io/revision"]
 	if rs.Status.Replicas != 0 {
-		return 0, errors.New("can not rollback current replica")
+		return 0, errors.New("cannot rollback current replica")
 	}
 	vers, err := strconv.Atoi(revision)
 	if err != nil {
