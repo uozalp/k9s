@@ -60,8 +60,7 @@ type App struct {
 	cancelFn       context.CancelFunc
 	clusterModel   *model.ClusterInfo
 	cmdHistory     *model.History
-	filterHistory  map[string]*model.History // Per-resource filter history (deprecated, use resourceStates)
-	resourceStates map[string]*ResourceState // Per-resource complete state
+	resourceStates map[string]*ResourceState // Per-resource state including filters, sorts, etc.
 	conRetry       int32
 	showHeader     bool
 	showLogo       bool
@@ -73,7 +72,6 @@ func NewApp(cfg *config.Config) *App {
 	a := App{
 		App:            ui.NewApp(cfg, cfg.K9s.ActiveContextName()),
 		cmdHistory:     model.NewHistory(model.MaxHistory),
-		filterHistory:  make(map[string]*model.History),
 		resourceStates: make(map[string]*ResourceState),
 		Content:        NewPageStack(),
 	}
@@ -793,14 +791,6 @@ func (a *App) clusterInfo() *ClusterInfo {
 
 func (a *App) statusIndicator() *ui.StatusIndicator {
 	return a.Views()["statusIndicator"].(*ui.StatusIndicator)
-}
-
-// GetFilterHistory returns the filter history for a specific resource.
-func (a *App) GetFilterHistory(gvr string) *model.History {
-	if a.filterHistory[gvr] == nil {
-		a.filterHistory[gvr] = model.NewHistory(model.MaxHistory)
-	}
-	return a.filterHistory[gvr]
 }
 
 // GetResourceState returns the complete state for a specific resource.
