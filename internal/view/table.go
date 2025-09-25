@@ -24,6 +24,7 @@ type Table struct {
 	*ui.Table
 
 	app        *App
+	parent     interface{} // Parent component (e.g., *Browser)
 	enterFn    EnterFunc
 	envFn      EnvFunc
 	bindKeysFn []BindKeysFunc
@@ -120,6 +121,24 @@ func (t *Table) SetEnvFn(f EnvFunc) { t.envFn = f }
 // EnvFn returns an plugin env function if available.
 func (t *Table) EnvFn() EnvFunc {
 	return t.envFn
+}
+
+// SetParent sets the parent component.
+func (t *Table) SetParent(parent interface{}) {
+	t.parent = parent
+}
+
+// SortColCmd creates a sort command, delegating to parent browser if available.
+func (t *Table) SortColCmd(name string, asc bool) func(evt *tcell.EventKey) *tcell.EventKey {
+	// Check if parent is a browser with its own SortColCmd method
+	if browser, ok := t.parent.(interface {
+		SortColCmd(string, bool) func(*tcell.EventKey) *tcell.EventKey
+	}); ok {
+		return browser.SortColCmd(name, asc)
+	}
+	
+	// Fallback to the underlying UI table's method
+	return t.Table.SortColCmd(name, asc)
 }
 
 // GetSortCol returns the current sort column information.

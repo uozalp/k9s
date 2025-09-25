@@ -46,9 +46,11 @@ type Browser struct {
 
 // NewBrowser returns a new browser.
 func NewBrowser(gvr *client.GVR) ResourceViewer {
-	return &Browser{
+	b := &Browser{
 		Table: NewTable(gvr),
 	}
+	b.Table.SetParent(b)
+	return b
 }
 
 func (b *Browser) setUpdating(f bool) {
