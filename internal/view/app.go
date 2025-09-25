@@ -42,30 +42,40 @@ const (
 	clusterInfoPad   = 15
 )
 
+// ResourceState represents the state for a specific resource view.
+type ResourceState struct {
+	FilterHistory *model.History
+	LastFilter    string
+	SortColumn    string
+	SortAscending bool
+}
+
 // App represents an application view.
 type App struct {
 	version string
 	*ui.App
-	Content       *PageStack
-	command       *Command
-	factory       *watch.Factory
-	cancelFn      context.CancelFunc
-	clusterModel  *model.ClusterInfo
-	cmdHistory    *model.History
-	filterHistory *model.History
-	conRetry      int32
-	showHeader    bool
-	showLogo      bool
-	showCrumbs    bool
+	Content        *PageStack
+	command        *Command
+	factory        *watch.Factory
+	cancelFn       context.CancelFunc
+	clusterModel   *model.ClusterInfo
+	cmdHistory     *model.History
+	filterHistory  map[string]*model.History // Per-resource filter history (deprecated, use resourceStates)
+	resourceStates map[string]*ResourceState // Per-resource complete state
+	conRetry       int32
+	showHeader     bool
+	showLogo       bool
+	showCrumbs     bool
 }
 
 // NewApp returns a K9s app instance.
 func NewApp(cfg *config.Config) *App {
 	a := App{
-		App:           ui.NewApp(cfg, cfg.K9s.ActiveContextName()),
-		cmdHistory:    model.NewHistory(model.MaxHistory),
-		filterHistory: model.NewHistory(model.MaxHistory),
-		Content:       NewPageStack(),
+		App:            ui.NewApp(cfg, cfg.K9s.ActiveContextName()),
+		cmdHistory:     model.NewHistory(model.MaxHistory),
+		filterHistory:  make(map[string]*model.History),
+		resourceStates: make(map[string]*ResourceState),
+		Content:        NewPageStack(),
 	}
 	a.ReloadStyles()
 
@@ -783,4 +793,37 @@ func (a *App) clusterInfo() *ClusterInfo {
 
 func (a *App) statusIndicator() *ui.StatusIndicator {
 	return a.Views()["statusIndicator"].(*ui.StatusIndicator)
+}
+
+// GetFilterHistory returns the filter history for a specific resource.
+func (a *App) GetFilterHistory(gvr string) *model.History {
+	if a.filterHistory[gvr] == nil {
+		a.filterHistory[gvr] = model.NewHistory(model.MaxHistory)
+	}
+	return a.filterHistory[gvr]
+}
+
+// GetResourceState returns the complete state for a specific resource.
+func (a *App) GetResourceState(gvr string) *ResourceState {
+	if a.resourceStates[gvr] == nil {
+		a.resourceStates[gvr] = &ResourceState{
+			FilterHistory: model.NewHistory(model.MaxHistory),
+		}
+	}
+	return a.resourceStates[gvr]
+}
+
+// SaveResourceState saves the current state for a resource.
+func (a *App) SaveResourceState(gvr, filter, sortCol string, sortAsc bool) {
+	state := a.GetResourceState(gvr)
+
+	// Save filter to history and update last filter
+	if filter != "" {
+		state.FilterHistory.Push(filter)
+		state.LastFilter = filter
+	}
+
+	// Save sort state
+	state.SortColumn = sortCol
+	state.SortAscending = sortAsc
 }

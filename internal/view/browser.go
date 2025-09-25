@@ -92,7 +92,22 @@ func (b *Browser) Init(ctx context.Context) error {
 		}
 	}
 	if b.App().IsRunning() {
-		b.app.CmdBuff().Reset()
+		// Restore complete state (filter + sort) for this resource
+		state := b.app.GetResourceState(b.GVR().String())
+		if state.LastFilter != "" {
+			b.SetFilter(state.LastFilter, true)
+			// Trigger BufferCompleted to actually apply the filter
+			b.BufferCompleted(state.LastFilter, "")
+			// Force a refresh to apply the filter
+			b.GetTable().Filter(state.LastFilter)
+		} else {
+			b.app.CmdBuff().Reset()
+		}
+
+		// Restore sort column and direction if set
+		if state.SortColumn != "" {
+			b.GetTable().SetSortCol(state.SortColumn, state.SortAscending)
+		}
 	}
 	b.SetReadOnly(b.app.Config.IsReadOnly())
 	b.SetNoIcon(b.app.Config.K9s.UI.NoIcons)
@@ -126,15 +141,16 @@ func (b *Browser) InCmdMode() bool {
 
 func (b *Browser) suggestFilter() model.SuggestionFunc {
 	return func(s string) (entries sort.StringSlice) {
+		state := b.app.GetResourceState(b.GVR().String())
 		if s == "" {
-			if b.App().filterHistory.Empty() {
+			if state.FilterHistory.Empty() {
 				return
 			}
-			return b.App().filterHistory.List()
+			return state.FilterHistory.List()
 		}
 
 		s = strings.ToLower(s)
-		for _, h := range b.App().filterHistory.List() {
+		for _, h := range state.FilterHistory.List() {
 			if s == h {
 				continue
 			}
@@ -243,7 +259,13 @@ func (b *Browser) BufferActive(state bool, _ model.BufferKind) {
 		defer b.setUpdating(false)
 		b.UpdateUI(cdata, mdata)
 		if b.GetRowCount() > 1 {
-			b.App().filterHistory.Push(b.CmdBuff().GetText())
+			// Save filter state (sort is saved separately when sort commands are executed)
+			filter := b.CmdBuff().GetText()
+			state := b.app.GetResourceState(b.GVR().String())
+			if filter != "" {
+				state.FilterHistory.Push(filter)
+				state.LastFilter = filter
+			}
 		}
 	})
 }
@@ -287,6 +309,30 @@ func (b *Browser) GetTable() *Table { return b.Table }
 // Aliases returns all available aliases.
 func (b *Browser) Aliases() sets.Set[string] {
 	return aliases(b.meta, b.app.command.AliasesFor(client.NewGVRFromMeta(b.meta)))
+}
+
+// SortColCmd creates a sort command that also saves state.
+func (b *Browser) SortColCmd(name string, asc bool) func(evt *tcell.EventKey) *tcell.EventKey {
+	// Get the original sort command from the UI table
+	originalCmd := b.GetTable().Table.SortColCmd(name, asc)
+
+	// Wrap it to also save sort state
+	return func(evt *tcell.EventKey) *tcell.EventKey {
+		result := originalCmd(evt)
+
+		// Save sort state
+		state := b.app.GetResourceState(b.GVR().String())
+
+		// Toggle logic matches the UI implementation
+		if state.SortColumn == name {
+			state.SortAscending = !state.SortAscending
+		} else {
+			state.SortAscending = asc
+		}
+		state.SortColumn = name
+
+		return result
+	}
 }
 
 // ----------------------------------------------------------------------------

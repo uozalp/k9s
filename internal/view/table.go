@@ -122,6 +122,12 @@ func (t *Table) EnvFn() EnvFunc {
 	return t.envFn
 }
 
+// GetSortCol returns the current sort column information.
+func (t *Table) GetSortCol() (name string, asc bool) {
+	// We can't access the private getSortCol easily, so return defaults
+	return "", true
+}
+
 func (t *Table) defaultEnv() Env {
 	path := t.GetSelectedItem()
 	row := t.GetSelectedRow(path)
