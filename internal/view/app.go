@@ -627,7 +627,12 @@ func (a *App) toggleCrumbsCmd(evt *tcell.EventKey) *tcell.EventKey {
 
 func (a *App) gotoCmd(evt *tcell.EventKey) *tcell.EventKey {
 	if a.CmdBuff().IsActive() && !a.CmdBuff().Empty() {
-		a.gotoResource(a.GetCmd(), "", true, true)
+		cmd := a.GetCmd()
+		// If there's a current suggestion, combine typed text with suggestion
+		if suggestion, hasSuggestion := a.CmdBuff().CurrentSuggestion(); hasSuggestion {
+			cmd = cmd + suggestion
+		}
+		a.gotoResource(cmd, "", true, true)
 		a.ResetCmd()
 		return nil
 	}
