@@ -50,6 +50,7 @@ type Log struct {
 	mx                sync.Mutex
 	follow            bool
 	requestOneRefresh bool
+	syntaxHighlighter *color.LogSyntaxHighlighter
 }
 
 var _ model.Component = (*Log)(nil)
@@ -57,9 +58,10 @@ var _ model.Component = (*Log)(nil)
 // NewLog returns a new viewer.
 func NewLog(gvr *client.GVR, opts *dao.LogOptions) *Log {
 	l := Log{
-		Flex:   tview.NewFlex(),
-		model:  model.NewLog(gvr, opts, defaultFlushTimeout),
-		follow: true,
+		Flex:              tview.NewFlex(),
+		model:             model.NewLog(gvr, opts, defaultFlushTimeout),
+		follow:            true,
+		syntaxHighlighter: color.NewLogSyntaxHighlighter(),
 	}
 
 	return &l
@@ -360,7 +362,13 @@ func (l *Log) Flush(lines [][]byte) {
 		if l.cancelUpdates {
 			break
 		}
-		_, _ = l.ansiWriter.Write(lines[i])
+		// Apply syntax highlighting only if enabled in config
+		if l.app.Config.K9s.Logger.SyntaxHighlight {
+			highlightedLine := l.syntaxHighlighter.HighlightBytes(lines[i])
+			_, _ = l.ansiWriter.Write(highlightedLine)
+		} else {
+			_, _ = l.ansiWriter.Write(lines[i])
+		}
 	}
 	if l.follow {
 		l.logs.ScrollToEnd()

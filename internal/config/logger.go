@@ -22,14 +22,16 @@ type Logger struct {
 	TextWrap          bool  `json:"textWrap" yaml:"textWrap"`
 	DisableAutoscroll bool  `json:"disableAutoscroll" yaml:"disableAutoscroll"`
 	ShowTime          bool  `json:"showTime" yaml:"showTime"`
+	SyntaxHighlight   bool  `json:"syntaxHighlight" yaml:"syntaxHighlight"`
 }
 
 // NewLogger returns a new instance.
 func NewLogger() Logger {
 	return Logger{
-		TailCount:    DefaultLoggerTailCount,
-		BufferSize:   MaxLogThreshold,
-		SinceSeconds: DefaultSinceSeconds,
+		TailCount:       DefaultLoggerTailCount,
+		BufferSize:      MaxLogThreshold,
+		SinceSeconds:    DefaultSinceSeconds,
+		SyntaxHighlight: true, // Enable syntax highlighting by default
 	}
 }
 
