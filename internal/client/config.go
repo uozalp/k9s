@@ -20,7 +20,7 @@ import (
 
 const (
 	// DefaultCallTimeoutDuration is the default api server call timeout duration.
-	DefaultCallTimeoutDuration time.Duration = 120 * time.Second
+	DefaultCallTimeoutDuration time.Duration = 5 * time.Second
 
 	// UsePersistentConfig caches client config to avoid reloads.
 	UsePersistentConfig = true
@@ -61,6 +61,8 @@ func (c *Config) RESTConfig() (*restclient.Config, error) {
 	if c.proxy != nil {
 		cfg.Proxy = c.proxy
 	}
+	// Apply timeout to all API requests globally
+	cfg.Timeout = c.CallTimeout()
 
 	return cfg, nil
 }

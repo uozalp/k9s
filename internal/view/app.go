@@ -128,6 +128,11 @@ func (a *App) Init(version string, _ int) error {
 	}
 	a.CmdBuff().SetSuggestionFn(a.suggestCommand())
 
+	// Perform startup connectivity check (fail fast, no retries)
+	if !a.Conn().CheckConnectivity() {
+		return fmt.Errorf("unable to connect to cluster %q", a.Config.ActiveContextName())
+	}
+
 	a.layout(ctx)
 	a.initSignals()
 
@@ -463,6 +468,17 @@ func (a *App) switchContext(ci *cmd.Interpreter, force bool) error {
 			a.Config.SetActiveView(client.PodGVR.String())
 		}
 		ns := a.Config.ActiveNamespace()
+
+		a.initFactory(ns)
+
+		// Check connectivity immediately (fail fast before any API calls)
+		if !a.Conn().CheckConnectivity() {
+			atomic.StoreInt32(&a.conRetry, 0) // Reset retry counter
+			a.Flash().Errf("Failed to connect to cluster %q", contextName)
+			return fmt.Errorf("unable to connect to cluster %q", contextName)
+		}
+		atomic.StoreInt32(&a.conRetry, 0) // Reset on success
+
 		if !a.Conn().IsValidNamespace(ns) {
 			slog.Warn("Unable to validate namespace", slogs.Namespace, ns)
 			if err := a.Config.SetActiveNamespace(ns); err != nil {
