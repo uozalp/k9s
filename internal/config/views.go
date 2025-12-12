@@ -29,12 +29,16 @@ type ViewConfigListener interface {
 
 	// GetNamespace return the view namespace
 	GetNamespace() string
+
+	// GetContextName return the view context name
+	GetContextName() string
 }
 
 // ViewSetting represents a view configuration.
 type ViewSetting struct {
 	Columns    []string `yaml:"columns"`
 	SortColumn string   `yaml:"sortColumn"`
+	Context    string   `yaml:"context,omitempty"`
 }
 
 func (v *ViewSetting) HasCols() bool {
@@ -67,6 +71,10 @@ func (v *ViewSetting) Equals(vs *ViewSetting) bool {
 	}
 
 	if c := slices.Compare(v.Columns, vs.Columns); c != 0 {
+		return false
+	}
+
+	if cmp.Compare(v.Context, vs.Context) != 0 {
 		return false
 	}
 
@@ -144,6 +152,11 @@ func (v *CustomView) RemoveListener(l ViewConfigListener) {
 	}
 }
 
+// GetVS retrieves view settings for a given GVR, namespace, and context.
+func (v *CustomView) GetVS(gvr, ns, context string) *ViewSetting {
+	return v.getVS(gvr, ns, context)
+}
+
 func (v *CustomView) fireConfigChanged() {
 	cmds := slices.Collect(maps.Keys(v.listeners))
 	slices.SortFunc(cmds, func(a, b string) int {
@@ -162,7 +175,8 @@ func (v *CustomView) fireConfigChanged() {
 	}
 	var victim tuple
 	for _, cmd := range cmds {
-		if vs := v.getVS(cmd, v.listeners[cmd].GetNamespace()); vs != nil {
+		listener := v.listeners[cmd]
+		if vs := v.getVS(cmd, listener.GetNamespace(), listener.GetContextName()); vs != nil {
 			slog.Debug("Reloading custom view settings", slogs.Command, cmd)
 			victim = tuple{cmd, vs}
 			break
@@ -174,7 +188,7 @@ func (v *CustomView) fireConfigChanged() {
 	}
 }
 
-func (v *CustomView) getVS(gvr, ns string) *ViewSetting {
+func (v *CustomView) getVS(gvr, ns, context string) *ViewSetting {
 	if client.IsAllNamespaces(ns) {
 		ns = client.NamespaceAll
 	}
@@ -182,7 +196,41 @@ func (v *CustomView) getVS(gvr, ns string) *ViewSetting {
 	kk := slices.Collect(maps.Keys(v.Views))
 	slices.SortFunc(kk, strings.Compare)
 	slices.Reverse(kk)
+
+	// matchContext checks if view setting context matches current context
+	matchContext := func(vs *ViewSetting) bool {
+		if vs.Context == "" {
+			return true // No context filter, matches all
+		}
+		if context == "" {
+			return true // No current context provided, accept any
+		}
+		return vs.Context == context
+	}
+
+	// Check for most specific patterns first (highest priority)
+	if context != "" {
+		// 1. Namespace + Context pattern (most specific: "v1/pods@default@context:production")
+		if ns != "" && ns != client.NamespaceAll {
+			nsContextKey := gvr + "@" + ns + "@context:" + context
+			if vs, ok := v.Views[nsContextKey]; ok {
+				return &vs
+			}
+		}
+
+		// 2. Context-only pattern (e.g., "v1/pods@context:production")
+		contextKey := gvr + "@context:" + context
+		if vs, ok := v.Views[contextKey]; ok {
+			return &vs
+		}
+	}
+
 	for _, key := range kk {
+		// Skip keys with context suffixes if they don't match current context
+		if strings.Contains(key, "@context:") {
+			continue // Already handled above
+		}
+
 		if !strings.HasPrefix(key, gvr) && !strings.HasPrefix(gvr, key) {
 			continue
 		}
@@ -199,23 +247,29 @@ func (v *CustomView) getVS(gvr, ns string) *ViewSetting {
 			}
 			if rx, err := regexp.Compile(tt[1]); err == nil && rx.MatchString(nsk) {
 				vs := v.Views[key]
-				return &vs
+				if matchContext(&vs) {
+					return &vs
+				}
 			}
 		case strings.HasPrefix(k, key):
 			kk := strings.Fields(k)
 			if len(kk) == 2 {
-				if v, ok := v.Views[kk[0]+"@"+kk[1]]; ok {
-					return &v
+				if vs, ok := v.Views[kk[0]+"@"+kk[1]]; ok && matchContext(&vs) {
+					return &vs
 				}
 				if key == kk[0] {
 					vs := v.Views[key]
-					return &vs
+					if matchContext(&vs) {
+						return &vs
+					}
 				}
 			}
 			fallthrough
 		case key == k:
 			vs := v.Views[key]
-			return &vs
+			if matchContext(&vs) {
+				return &vs
+			}
 		}
 	}
 

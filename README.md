@@ -745,7 +745,24 @@ views:
       - AGE
       - NAMESPACE|WR
 
-  v1/services:
+  v1/pods@context:production:                            # => 🌚 Context-specific view! Only applies when connected to 'production' context
+    columns:
+      - NAMESPACE
+      - NAME
+      - STATUS
+      - READY
+      - AGE
+
+  v1/pods@context:development:                         # => 🌚 Different column layout for 'development' context
+    columns:
+      - NAMESPACE
+      - NAME
+      - READY
+      - STATUS
+      - RESTARTS
+      - AGE
+
+  v1/services:                                           # => Generic view for all contexts
     columns:
       - AGE
       - NAMESPACE
@@ -753,6 +770,17 @@ views:
       - TYPE
       - CLUSTER-IP
 ```
+
+### Context-Specific Views
+
+You can define different column layouts for the same resource type across different Kubernetes contexts using the `@context:` suffix. When you specify a context-specific view using the format `<resource>@context:<contextname>`, k9s will use that view only when connected to that specific context.
+
+**Matching Priority:**
+1. Context-specific view (e.g., `v1/pods@context:production`)
+2. Namespace-specific view (e.g., `v1/pods@default`)
+3. Generic view (e.g., `v1/pods`)
+
+This allows you to have different column layouts optimized for different environments while maintaining a fallback for contexts without specific views defined.
 
 > 🩻 NOTE: This is experimental and will most likely change as we iron this out!
 

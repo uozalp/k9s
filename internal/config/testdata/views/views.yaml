@@ -23,3 +23,23 @@ views:
       - DUH
       - BLAH
       - BLEE
+
+  v1/services@context:prod-cluster:
+    columns:
+      - NAME
+      - TYPE
+      - CLUSTER-IP
+
+  v1/pods@context:production:
+    columns:
+      - NAMESPACE
+      - NAME
+      - READY
+      - STATUS
+
+  v1/pods@kube-system@context:production:
+    columns:
+      - NAME
+      - NODE
+      - STATUS
+      - AGE

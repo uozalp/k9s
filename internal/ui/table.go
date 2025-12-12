@@ -53,6 +53,7 @@ type Table struct {
 	toast          bool
 	hasMetrics     bool
 	ctx            context.Context
+	contextName    string
 	mx             sync.RWMutex
 	readOnly       bool
 	noIcon         bool
@@ -436,6 +437,22 @@ func (t *Table) GetNamespace() string {
 	}
 
 	return client.NamespaceAll
+}
+
+// GetContextName returns the current context name.
+func (t *Table) GetContextName() string {
+	t.mx.RLock()
+	defer t.mx.RUnlock()
+
+	return t.contextName
+}
+
+// SetContextName sets the current context name.
+func (t *Table) SetContextName(ctx string) {
+	t.mx.Lock()
+	defer t.mx.Unlock()
+
+	t.contextName = ctx
 }
 
 func (t *Table) doUpdate(data *model1.TableData) *model1.TableData {

@@ -13,9 +13,9 @@ import (
 
 func TestCustomView_getVS(t *testing.T) {
 	uu := map[string]struct {
-		cv      *CustomView
-		gvr, ns string
-		e       *ViewSetting
+		cv           *CustomView
+		gvr, ns, ctx string
+		e            *ViewSetting
 	}{
 		"empty": {},
 
@@ -64,6 +64,56 @@ func TestCustomView_getVS(t *testing.T) {
 		"toast-no-res": {
 			gvr: client.SvcGVR.String(),
 			ns:  "zorg",
+			e:   nil,
+		},
+
+		"context-match": {
+			gvr: client.SvcGVR.String(),
+			ctx: "prod-cluster",
+			e: &ViewSetting{
+				Columns: []string{"NAME", "TYPE", "CLUSTER-IP"},
+			},
+		},
+
+		"context-no-match": {
+			gvr: client.SvcGVR.String(),
+			ctx: "dev-cluster",
+			e:   nil,
+		},
+
+		"context-fallback": {
+			gvr: client.PodGVR.String(),
+			ctx: "any-cluster",
+			e: &ViewSetting{
+				Columns: []string{"NAMESPACE", "NAME", "AGE", "IP"},
+			},
+		},
+
+		"ns+context": {
+			gvr: client.PodGVR.String(),
+			ns:  "kube-system",
+			ctx: "production",
+			e: &ViewSetting{
+				Columns: []string{"NAME", "NODE", "STATUS", "AGE"},
+			},
+		},
+
+		"ns+context-fallback-to-context": {
+			gvr: client.PodGVR.String(),
+			ns:  "other-namespace",
+			ctx: "production",
+			e: &ViewSetting{
+				Columns: []string{"NAMESPACE", "NAME", "READY", "STATUS"},
+			},
+		},
+
+		"ns+context-fallback-to-ns": {
+			gvr: client.PodGVR.String(),
+			ns:  "default",
+			ctx: "other-context",
+			e: &ViewSetting{
+				Columns: []string{"NAME", "IP", "AGE"},
+			},
 		},
 	}
 
@@ -71,7 +121,7 @@ func TestCustomView_getVS(t *testing.T) {
 	require.NoError(t, v.Load("testdata/views/views.yaml"))
 	for k, u := range uu {
 		t.Run(k, func(t *testing.T) {
-			assert.Equal(t, u.e, v.getVS(u.gvr, u.ns))
+			assert.Equal(t, u.e, v.getVS(u.gvr, u.ns, u.ctx))
 		})
 	}
 }

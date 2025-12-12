@@ -50,6 +50,10 @@ func (t *Table) Init(ctx context.Context) (err error) {
 	}
 	ctx = context.WithValue(ctx, internal.KeyStyles, t.app.Styles)
 	ctx = context.WithValue(ctx, internal.KeyViewConfig, t.app.CustomView())
+
+	// Set the current context name for view filtering
+	t.Table.SetContextName(t.app.Config.K9s.ActiveContextName())
+
 	t.Table.Init(ctx)
 	if !t.app.Config.K9s.UI.Reactive {
 		if err := t.app.RefreshCustomViews(); err != nil {
