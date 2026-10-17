@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -42,7 +43,7 @@ type K9s struct {
 	MaxConnRetry        int32      `json:"maxConnRetry" yaml:"maxConnRetry"`
 	ReadOnly            bool       `json:"readOnly" yaml:"readOnly"`
 	NoExitOnCtrlC       bool       `json:"noExitOnCtrlC" yaml:"noExitOnCtrlC"`
-	PortForwardAddress  string     `yaml:"portForwardAddress"`
+	PortForwardAddress  string     `json:"portForwardAddress" yaml:"portForwardAddress"`
 	UI                  UI         `json:"ui" yaml:"ui"`
 	SkipLatestRevCheck  bool       `json:"skipLatestRevCheck" yaml:"skipLatestRevCheck"`
 	DisablePodCounting  bool       `json:"disablePodCounting" yaml:"disablePodCounting"`
@@ -130,6 +131,8 @@ func (k *K9s) Merge(k1 *K9s) {
 	if k1 == nil {
 		return
 	}
+	k.mx.Lock()
+	defer k.mx.Unlock()
 
 	for k, v := range k1.GPUVendors {
 		KnownGPUVendors[k] = v
@@ -391,6 +394,22 @@ func (k *K9s) IsInvert() bool {
 	}
 
 	return k.UI.Invert
+}
+
+// Logo returns the configured header logo ascii art.
+func (k *K9s) Logo() string {
+	if cfg := k.getActiveConfig(); cfg != nil {
+		if art := cfg.Logo(); strings.TrimSpace(art) != "" {
+			return art
+		}
+	}
+	k.mx.RLock()
+	defer k.mx.RUnlock()
+	if strings.TrimSpace(k.UI.Logo) == "" {
+		return ""
+	}
+
+	return k.UI.Logo
 }
 
 // GetRefreshRate returns the current refresh rate.
