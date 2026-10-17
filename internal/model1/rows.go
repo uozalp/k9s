@@ -47,9 +47,15 @@ func (rr Rows) Find(id string) (int, bool) {
 	return 0, false
 }
 
-// Sort rows based on column index and order. When isAge is true, the AGE
-// column is sorted using the stashed Row.Age timestamps for stable ordering.
+// Sort rows based on column index and order. When isAge is true and every row
+// has a Row.Age timestamp, the AGE column is sorted by those timestamps.
 func (rr Rows) Sort(col int, asc, isNum, isDur, isCapacity, isAge bool) {
+	for i := range rr {
+		if rr[i].Age.IsZero() {
+			isAge = false
+			break
+		}
+	}
 	t := RowSorter{
 		Rows:       rr,
 		Index:      col,

@@ -20,6 +20,7 @@ func NewRow(size int) Row {
 // Labelize returns a new row based on labels.
 func (r Row) Labelize(cols []int, labelCol int, labels []string) Row {
 	out := NewRow(len(cols) + len(labels))
+	out.Age = r.Age
 	for _, col := range cols {
 		out.Fields = append(out.Fields, r.Fields[col])
 	}
@@ -36,6 +37,7 @@ func (r Row) Customize(cols []int) Row {
 	out := NewRow(len(cols))
 	r.Fields.Customize(cols, out.Fields)
 	out.ID = r.ID
+	out.Age = r.Age
 
 	return out
 }

@@ -186,23 +186,16 @@ func Less(isNumber, isDuration, isCapacity bool, id1, id2, v1, v2 string) bool {
 	return less
 }
 
-// lessRow returns true if r1 should sort before r2 in ascending order for
-// the given column. When isAge is true and both rows carry a non-zero
-// Row.Age timestamp, comparison is performed directly on those timestamps
-// to avoid loss of precision from humanized age strings. Otherwise it
-// falls back to the regular string-based Less.
+// lessRow returns true if r1 should sort before r2 in ascending order.
+// When isAge is true, every row must carry a non-zero Row.Age; callers check
+// this so the whole sort uses one comparison and stays transitive.
 func lessRow(isAge, isNumber, isDuration, isCapacity bool, idx int, r1, r2 Row) bool {
-	if isAge && !r1.Age.IsZero() && !r2.Age.IsZero() {
-		switch {
-		case r1.Age.Equal(r2.Age):
+	if isAge {
+		if r1.Age.Equal(r2.Age) {
 			return sortorder.NaturalLess(r1.ID, r2.ID)
-		default:
-			// A larger creation timestamp means a younger resource,
-			// i.e. a smaller age. Ascending age sort should place the
-			// youngest first to mirror the existing string-based
-			// behavior on the AGE column.
-			return r1.Age.After(r2.Age)
 		}
+		// Later creation time means younger, i.e. smaller age, which sorts first.
+		return r1.Age.After(r2.Age)
 	}
 	v1, v2 := r1.Fields[idx], r2.Fields[idx]
 	return Less(isNumber, isDuration, isCapacity, r1.ID, r2.ID, v1, v2)

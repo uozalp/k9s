@@ -254,12 +254,17 @@ func (r *RowEvents) FindIndex(id string) (int, bool) {
 	return i, ok
 }
 
-// Sort rows based on column index and order. When isAge is true, the AGE
-// column is sorted using the stashed Row.Age timestamps so that the
-// ordering is stable and not affected by humanized-string precision loss.
+// Sort rows based on column index and order. When isAge is true and every row
+// has a Row.Age timestamp, the AGE column is sorted by those timestamps.
 func (r *RowEvents) Sort(ns string, sortCol int, isDuration, numCol, isCapacity, isAge, asc bool) {
 	if sortCol == -1 || r == nil {
 		return
+	}
+	for i := range r.events {
+		if r.events[i].Row.Age.IsZero() {
+			isAge = false
+			break
+		}
 	}
 
 	t := RowEventSorter{
