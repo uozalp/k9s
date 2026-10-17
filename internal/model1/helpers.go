@@ -135,7 +135,8 @@ func durationToSeconds(duration string) int64 {
 	if duration == "" {
 		return 0
 	}
-	if duration == NAValue {
+	// Placeholders like <unknown>, <none> or n/a have no age and sort last.
+	if duration[0] < '0' || duration[0] > '9' {
 		return math.MaxInt64
 	}
 
